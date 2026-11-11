@@ -7,6 +7,8 @@ import com.neirah.approveflow.user.Role;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.Collection;
+import java.time.Instant;
+import java.util.List;
 
 
 public interface RequestRepository extends JpaRepository<Request, Long> {
@@ -21,4 +23,27 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
         """)
     Page<Request> findPendingFor(@Param("userId") Long userId,
                                  @Param("roles") Collection<Role> roles, Pageable pageable);
+
+    @Query("""
+        select r.id from Request r
+        where r.status = com.neirah.approveflow.request.RequestStatus.PENDING_APPROVAL
+          and r.currentStepDueAt < :now
+        """)
+    List<Long> findOverdueIds(@Param("now") Instant now);
+
+    @Query("""
+        select count(r) from Request r
+        where r.status = com.neirah.approveflow.request.RequestStatus.PENDING_APPROVAL
+          and r.currentStepDueAt < :now
+        """)
+    long countOverdue(@Param("now") Instant now);
+
+    long countByStatus(RequestStatus status);
+
+    @Query(value = """
+        SELECT AVG(TIMESTAMPDIFF(SECOND, submitted_at, completed_at))
+        FROM requests
+        WHERE status = 'APPROVED' AND completed_at IS NOT NULL AND submitted_at IS NOT NULL
+        """, nativeQuery = true)
+    Number averageApprovalSeconds();
 }
