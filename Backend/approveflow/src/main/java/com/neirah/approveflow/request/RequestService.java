@@ -1,5 +1,6 @@
 package com.neirah.approveflow.request;
 
+import com.neirah.approveflow.approval.ApprovalDecisionRepository;
 import com.neirah.approveflow.audit.AuditAction;
 import com.neirah.approveflow.audit.AuditService;
 import com.neirah.approveflow.common.ApiException;
@@ -28,6 +29,7 @@ public class RequestService {
     private final WorkflowDefinitionRepository definitions;
     private final WorkflowVersionRepository versions;
     private final WorkflowStepRepository steps;
+    private final ApprovalDecisionRepository decisions;
     private final PayloadValidator payloadValidator;
     private final ConditionEvaluator evaluator;
     private final AuditService audit;
@@ -35,13 +37,15 @@ public class RequestService {
 
     public RequestService(RequestRepository requests, UserRepository users,
                           WorkflowDefinitionRepository definitions, WorkflowVersionRepository versions,
-                          WorkflowStepRepository steps, PayloadValidator payloadValidator,
-                          ConditionEvaluator evaluator, AuditService audit, ObjectMapper mapper) {
+                          WorkflowStepRepository steps, ApprovalDecisionRepository decisions,
+                          PayloadValidator payloadValidator, ConditionEvaluator evaluator,
+                          AuditService audit, ObjectMapper mapper) {
         this.requests = requests;
         this.users = users;
         this.definitions = definitions;
         this.versions = versions;
         this.steps = steps;
+        this.decisions = decisions;
         this.payloadValidator = payloadValidator;
         this.evaluator = evaluator;
         this.audit = audit;
@@ -157,9 +161,15 @@ public class RequestService {
         return new RequestDetailResponse(toResponse(r), audit.timeline(r.getId()));
     }
 
-    // Approval module-la assigned approver-um inge add aagum
+    // Owner, Admin, current step-ku assigned approver, illa munnaadi decide pannina approver
     private boolean canView(Request r, User actor) {
-        return isAdmin(actor) || r.getOwner().getId().equals(actor.getId());
+        if (isAdmin(actor) || r.getOwner().getId().equals(actor.getId())) return true;
+        if (r.getStatus() == RequestStatus.DRAFT) return false;
+
+        boolean assigned = r.getCurrentStepId() != null && steps.findById(r.getCurrentStepId())
+                .map(s -> actor.getRoles().contains(s.getApproverRole()))
+                .orElse(false);
+        return assigned || decisions.existsByRequestIdAndActorId(r.getId(), actor.getId());
     }
 
     private boolean isAdmin(User actor) {
@@ -177,7 +187,7 @@ public class RequestService {
         return mapper.readValue(r.getPayloadJson(), Map.class);
     }
 
-    private RequestResponse toResponse(Request r) {
+    public RequestResponse toResponse(Request r) {
         Role stepRole = r.getCurrentStepId() == null ? null
                 : steps.findById(r.getCurrentStepId()).map(WorkflowStep::getApproverRole).orElse(null);
         return new RequestResponse(r.getId(), r.getOwner().getId(), r.getOwner().getName(),
