@@ -33,3 +33,17 @@ export const STATUS_LABELS = {
     if (r.type === 'LEAVE') return `${p.leaveType}: ${p.startDate} to ${p.endDate}`
     return ''
   }
+  export function describeDecision(r) {
+    switch (r.status) {
+      case 'APPROVED':
+        return `Request #${r.id} approved (final)`
+      case 'PENDING_APPROVAL':
+        return `Request #${r.id} approved and sent to ${r.currentStepRole}`
+      case 'REJECTED':
+        return `Request #${r.id} rejected`
+      case 'RETURNED':
+        return `Request #${r.id} returned to the requester`
+      default:
+        return `Request #${r.id} updated`
+    }
+  }

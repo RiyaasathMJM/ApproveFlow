@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import RequestDetailPage from './pages/RequestDetailPage.jsx'
 import RequestFormPage from './pages/RequestFormPage.jsx'
 import RequestListPage from './pages/RequestListPage.jsx'
+import PendingApprovalsPage from './pages/PendingApprovalsPage.jsx'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -30,7 +31,7 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedRoute roles={['MANAGER', 'FINANCE']} />}>
-            <Route path="/approvals" element={<Placeholder title="My Pending Approvals" />} />
+            <Route path="/approvals" element={<PendingApprovalsPage />} />
           </Route>
 
           <Route element={<ProtectedRoute roles={['ADMIN']} />}>

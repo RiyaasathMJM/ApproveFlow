@@ -2,11 +2,18 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { homePathFor, useAuth } from '../auth/AuthContext.jsx'
+import DecisionDialog from '../components/DecisionDialog.jsx'
 import { ErrorState, Loading } from '../components/Feedback.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import Timeline from '../components/Timeline.jsx'
 import { useFetch } from '../hooks/useFetch.js'
-import { formatDateTime, formatLKR, humanize, isOverdue } from '../utils/format.js'
+import {
+  describeDecision,
+  formatDateTime,
+  formatLKR,
+  humanize,
+  isOverdue,
+} from '../utils/format.js'
 
 export default function RequestDetailPage() {
   const { id } = useParams()
@@ -18,6 +25,7 @@ export default function RequestDetailPage() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
   const [flash, setFlash] = useState(location.state?.flash ?? null)
+  const [showDecision, setShowDecision] = useState(false)
 
   async function submit() {
     setBusy(true)
@@ -47,12 +55,25 @@ export default function RequestDetailPage() {
     }
   }
 
-  if (loading) return <Loading />
+  function handleDecisionDone(result) {
+    setShowDecision(false)
+    setActionError('')
+    setFlash({ type: 'success', message: describeDecision(result) })
+    reload()
+  }
+
+  if (loading && !data) return <Loading />
   if (error) return <ErrorState message={error} onRetry={reload} />
 
   const { request: r, timeline } = data
   const isOwner = r.ownerId === user.id
   const editable = isOwner && (r.status === 'DRAFT' || r.status === 'RETURNED')
+  // UI hint mattum. Real check server-la (role, self-approval, step)
+  const canDecide =
+    r.status === 'PENDING_APPROVAL' &&
+    !isOwner &&
+    !!r.currentStepRole &&
+    user.roles.includes(r.currentStepRole)
   const returnEvent =
     r.status === 'RETURNED' ? [...timeline].reverse().find((e) => e.action === 'RETURN') : null
 
@@ -114,17 +135,26 @@ export default function RequestDetailPage() {
           </>
         )}
 
-        {editable && (
+        {(editable || canDecide) && (
           <div className="actions">
-            <Link className="btn secondary" to={`/requests/${r.id}/edit`}>
-              Edit
-            </Link>
-            <button className="btn" disabled={busy} onClick={submit}>
-              {busy ? 'Please wait...' : r.status === 'RETURNED' ? 'Resubmit' : 'Submit for approval'}
-            </button>
-            {r.status === 'DRAFT' && (
-              <button className="btn danger" disabled={busy} onClick={remove}>
-                Delete
+            {editable && (
+              <>
+                <Link className="btn secondary" to={`/requests/${r.id}/edit`}>
+                  Edit
+                </Link>
+                <button className="btn" disabled={busy} onClick={submit}>
+                  {busy ? 'Please wait...' : r.status === 'RETURNED' ? 'Resubmit' : 'Submit for approval'}
+                </button>
+                {r.status === 'DRAFT' && (
+                  <button className="btn danger" disabled={busy} onClick={remove}>
+                    Delete
+                  </button>
+                )}
+              </>
+            )}
+            {canDecide && (
+              <button className="btn" onClick={() => setShowDecision(true)}>
+                Take action
               </button>
             )}
           </div>
@@ -135,6 +165,15 @@ export default function RequestDetailPage() {
         <h3 style={{ marginTop: 0 }}>Timeline</h3>
         <Timeline events={timeline} />
       </div>
+
+      {showDecision && (
+        <DecisionDialog
+          request={r}
+          onClose={() => setShowDecision(false)}
+          onDone={handleDecisionDone}
+          onStale={reload}
+        />
+      )}
     </div>
   )
 }
