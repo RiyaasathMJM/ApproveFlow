@@ -4,6 +4,9 @@ import ProtectedRoute from './auth/ProtectedRoute.jsx'
 import Layout from './components/Layout.jsx'
 import Placeholder from './components/Placeholder.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import RequestDetailPage from './pages/RequestDetailPage.jsx'
+import RequestFormPage from './pages/RequestFormPage.jsx'
+import RequestListPage from './pages/RequestListPage.jsx'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -18,11 +21,12 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<HomeRedirect />} />
-          <Route path="/requests/:id" element={<Placeholder title="Request Details" />} />
+          <Route path="/requests/:id" element={<RequestDetailPage />} />
 
           <Route element={<ProtectedRoute roles={['REQUESTER']} />}>
-            <Route path="/requests" element={<Placeholder title="My Requests" />} />
-            <Route path="/requests/new" element={<Placeholder title="Create Request" />} />
+            <Route path="/requests" element={<RequestListPage title="My Requests" canCreate />} />
+            <Route path="/requests/new" element={<RequestFormPage />} />
+            <Route path="/requests/:id/edit" element={<RequestFormPage />} />
           </Route>
 
           <Route element={<ProtectedRoute roles={['MANAGER', 'FINANCE']} />}>
@@ -31,7 +35,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute roles={['ADMIN']} />}>
             <Route path="/admin/dashboard" element={<Placeholder title="Summary Dashboard" />} />
-            <Route path="/admin/requests" element={<Placeholder title="All Requests" />} />
+            <Route path="/admin/requests" element={<RequestListPage title="All Requests" showOwner />} />
             <Route path="/admin/workflows" element={<Placeholder title="Workflow Definitions" />} />
           </Route>
 
