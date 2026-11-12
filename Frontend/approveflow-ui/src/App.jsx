@@ -2,12 +2,14 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { homePathFor, useAuth } from './auth/AuthContext.jsx'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 import Layout from './components/Layout.jsx'
-import Placeholder from './components/Placeholder.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import PendingApprovalsPage from './pages/PendingApprovalsPage.jsx'
 import RequestDetailPage from './pages/RequestDetailPage.jsx'
 import RequestFormPage from './pages/RequestFormPage.jsx'
 import RequestListPage from './pages/RequestListPage.jsx'
-import PendingApprovalsPage from './pages/PendingApprovalsPage.jsx'
+import WorkflowFormPage from './pages/WorkflowFormPage.jsx'
+import WorkflowsPage from './pages/WorkflowsPage.jsx'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -35,9 +37,10 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedRoute roles={['ADMIN']} />}>
-            <Route path="/admin/dashboard" element={<Placeholder title="Summary Dashboard" />} />
+            <Route path="/admin/dashboard" element={<DashboardPage />} />
             <Route path="/admin/requests" element={<RequestListPage title="All Requests" showOwner />} />
-            <Route path="/admin/workflows" element={<Placeholder title="Workflow Definitions" />} />
+            <Route path="/admin/workflows" element={<WorkflowsPage />} />
+            <Route path="/admin/workflows/new" element={<WorkflowFormPage />} />
           </Route>
 
           <Route path="*" element={<HomeRedirect />} />
