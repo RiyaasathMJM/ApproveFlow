@@ -62,7 +62,7 @@ public class ApprovalService {
     // Decision + status + audit: ore transaction. Edhaavadhu fail aana ellame rollback.
     @Transactional
     public RequestResponse decide(Long requestId, User actor, DecisionRequest dto) {
-        Request r = requests.findById(requestId).orElseThrow(this::notFound);
+        Request r = requests.findByIdForUpdate(requestId).orElseThrow(this::notFound);
 
         // 1. self-approval (T04)
         if (r.getOwner().getId().equals(actor.getId())) {
